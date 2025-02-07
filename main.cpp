@@ -1,15 +1,11 @@
-#include <chrono>
+#include <cmath>
 #include <iostream>
-#include <numeric>
-#include <random>
 #include <vector>
-#include <algorithm>
 #include <cstdlib>
 #include <ctime>
-
+#include <fstream>
 
 using std::vector;
-
 
 struct Task {
     int id;
@@ -19,6 +15,10 @@ struct Task {
 struct Machine {
     vector<Task> tasks;
     int totalProcessingTime = 0;
+};
+
+struct WorkStation {
+    vector<Machine> machines;
 };
 
 template<typename T>
@@ -32,82 +32,78 @@ void print(T first, Args ... args) {
     print(args...);
 }
 
+Task generateTask(int i) {
+    return {i, rand() % 100 + 1}; // Tempo aleatório entre 1 e 100
+}
 
-void generateTasks(vector<Task>& tasks, int numTasks) {
+vector<Machine> initialize(int m, double r) {
+    int numTasks = static_cast<int>(pow(m, r)); // Calcula n = m^r
+    vector<Machine> machines(m);
+
     for (int i = 0; i < numTasks; ++i) {
-        tasks.push_back({i, rand() % 100 + 1});
-    }
-}
-
-void initState(vector<Machine>& machines, const vector<Task>& tasks) {
-    for (const auto& task : tasks) {
+        Task task = generateTask(i);
         machines[0].tasks.push_back(task);
+        machines[0].totalProcessingTime += task.processingTime;
     }
-    machines[0].totalProcessingTime = std::accumulate(tasks.begin(), tasks.end(), 0, [](int sum, const Task& task) {
-        return sum + task.processingTime;
-    });
+
+    return machines;
 }
 
-void distributeTasks(vector<Machine>& machines, const vector<Task>& tasks) {
-    for (const auto& task : tasks) {
-        auto minMachine = std::min_element(machines.begin(), machines.end(), [](const Machine& a, const Machine& b) {
-            return a.totalProcessingTime < b.totalProcessingTime;
-        });
-        minMachine->tasks.push_back(task);
-        minMachine->totalProcessingTime += task.processingTime;
+void runSimulations(const vector<int>& m_values, const vector<double>& r_values, int numExecutions) {
+    std::ofstream outputFile("resultados.csv");
+    outputFile << "Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro\n";
+
+    for (int m : m_values) {
+        for (double r : r_values) {
+            for (int exec = 1; exec <= numExecutions; ++exec) {
+                vector<Machine> machines = initialize(m, r);
+                
+                // Calcula o makespan (tempo da máquina mais carregada)
+                int makespan = 0;
+                for (const auto& machine : machines) {
+                    if (machine.totalProcessingTime > makespan) {
+                        makespan = machine.totalProcessingTime;
+                    }
+                }
+
+                // Grava no arquivo
+                outputFile << "Heuristica" << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << makespan << "," << numExecutions << "," << "Valor" << "," << r << "\n";
+
+                // Exibe no console
+                print("Execução:", exec, "| m:", m, "| r:", r, "| Makespan:", makespan, "num_tasks:", machines[0].tasks.size());
+            }
+        }
     }
+
+    outputFile.close();
 }
 
-int calculateMakespan(const vector<Machine>& machines) {
-    int makespan = 0;
-    for (const auto& machine : machines) {
-        makespan = std::max(makespan, machine.totalProcessingTime);
+void printMachine(const Machine& machine) {
+    print("====================================");
+    print("Máquina:");
+    print("Tarefas:");
+    for (const auto& task : machine.tasks) {
+        print("Tarefa", task.id, "| Tempo:", task.processingTime);
     }
-    return makespan;
-}
+    print("====================================");
+    print("Total de tarefas:", machine.tasks.size(), "| Makespan:", machine.totalProcessingTime);
 
-// void printMachinesAndTasks(const vector<Machine>& machines) {
-//     for (size_t i = 0; i < machines.size(); ++i) {
-//         print("Machine", i + 1, "Total Processing Time:", machines[i].totalProcessingTime);
-//         for (const auto& task : machines[i].tasks) {
-//             print("  Task ID:", task.id, "Processing Time:", task.processingTime);
-//         }
-//     }
-// }
-
-
-// void generateReportInCSV(const vector<Machine>& machines, const std::string& filename) {
-//     std::ofstream file(filename);
-//     if (file.is_open()) {
-//         file << "Heuristica,N,M,Replicacao,Tempo,Iteracoes,Valor,Parametro\n";
-//         for (size_t i = 0; i < machines.size(); ++i) {
-//             for (const auto& task : machines[i].tasks) {
-//                 file << i + 1 << "," << task.id << "," << task.processingTime << "\n";
-//             }
-//         }
-//         file.close();
-//     } else {
-//         std::cerr << "Unable to open file for writing: " << filename << '\n';
-//     }
-// }
-// 
-
-int random_int(int lo, int hi){
-    return lo + std::rand() % (hi - lo + 1);
 }
 
 int main() {
-    std::srand(std::chrono::system_clock::now().time_since_epoch().count());
-    for(int i = 0; i < 69; i++){
-       print(random_int(0, 100));
-    }
-    // srand(static_cast<unsigned int>(time(0)));
+    srand(static_cast<unsigned int>(time(0))); // Inicializa aleatoriedade
 
-    // vector<int> machineCounts = {10, 20, 50};
-    // vector<double> taskMultipliers = {1.5, 2.0};
+    vector<int> m_values = {10, 20, 50};
+    vector<double> r_values = {1.5, 2.0};
+    int numExecutions = 1;
 
-    // initState(machines, tasks);
-    // printMachinesAndTasks(machines);
+    print("Iniciando simulações...");
+
+    //Machine machine = initialize(m_values[0], r_values[0])[0];
+
+    //printMachine(machine);
+
+    runSimulations(m_values, r_values, numExecutions);
 
     return 0;
 }
