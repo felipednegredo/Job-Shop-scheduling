@@ -22,7 +22,7 @@ struct Machine {
     // Vector of tasks
     vector<Task> tasks;
     // Total processing time for the machine
-    int totalProcessingTime = 0;
+    int makespan = 0;
 };
 
 // Struct for WorkStation
@@ -64,7 +64,7 @@ vector<Machine> initialize(int m, double r) {
         // Add the task to the first machine
         machines[0].tasks.push_back(task);
         // Update the total processing time of the first machine
-        machines[0].totalProcessingTime += task.processingTime;
+        machines[0].makespan += task.processingTime;
     }
 
     // Return the machines
@@ -93,19 +93,19 @@ void searchLocalFirstImprovement(WorkStation& workStation) {
                     // If the machine is different from the other machine
                     if (&machine != &otherMachine) {
                         // Calculate the new total processing time
-                        int newTotalProcessingTime = otherMachine.totalProcessingTime + task.processingTime;
+                        int newmakespan = otherMachine.makespan + task.processingTime;
 
                         // If the new total processing time is less than the total processing time of the machine
-                        if (newTotalProcessingTime < machine.totalProcessingTime) {
+                        if (newmakespan < machine.makespan) {
                             // Remove the task from the machine
                             machine.tasks.erase(machine.tasks.begin() + i);
                             // Update the total processing time of the machine
-                            machine.totalProcessingTime -= task.processingTime;
+                            machine.makespan -= task.processingTime;
 
                             // Add the task to the other machine
                             otherMachine.tasks.push_back(task);
                             // Update the total processing time of the other machine
-                            otherMachine.totalProcessingTime += task.processingTime;
+                            otherMachine.makespan += task.processingTime;
 
                             // Set the improvement flag to true
                             improvement = true;
@@ -148,21 +148,21 @@ void searchLocalBestImprovement(WorkStation& workStation) {
                 // Pointer to the best machine
                 Machine* bestMachine = nullptr;
                 // Best total processing time
-                int bestTotalProcessingTime = machine.totalProcessingTime;
+                int bestmakespan = machine.makespan;
 
                 // For each other machine
                 for (auto& otherMachine : workStation.machines) {
                     // If the machine is different from the other machine
                     if (&machine != &otherMachine) {
                         // Calculate the new total processing time
-                        int newTotalProcessingTime = otherMachine.totalProcessingTime + task.processingTime;
+                        int newmakespan = otherMachine.makespan + task.processingTime;
 
                         // If the new total processing time is less than the best total processing time
-                        if (newTotalProcessingTime < bestTotalProcessingTime) {
+                        if (newmakespan < bestmakespan) {
                             // Update the best machine
                             bestMachine = &otherMachine;
                             // Update the best total processing time
-                            bestTotalProcessingTime = newTotalProcessingTime;
+                            bestmakespan = newmakespan;
                         }
                     }
                 }
@@ -172,12 +172,12 @@ void searchLocalBestImprovement(WorkStation& workStation) {
                     // Remove the task from the machine
                     machine.tasks.erase(machine.tasks.begin() + i);
                     // Update the total processing time of the machine
-                    machine.totalProcessingTime -= task.processingTime;
+                    machine.makespan -= task.processingTime;
 
                     // Add the task to the best machine
                     bestMachine->tasks.push_back(task);
                     // Update the total processing time of the best machine
-                    bestMachine->totalProcessingTime += task.processingTime;
+                    bestMachine->makespan += task.processingTime;
 
                     // Set the improvement flag to true
                     improvement = true;
@@ -186,6 +186,23 @@ void searchLocalBestImprovement(WorkStation& workStation) {
         }
     }
 }
+
+void exportTaskAllocation(const WorkStation& workStation, const string& filename = "tasks.csv") {
+    std::ofstream file(filename);
+    file << "Machine,TaskProcessingTime\n";
+
+    int machineIndex = 1;
+    for (const auto& machine : workStation.machines) {
+        for (const auto& task : machine.tasks) {
+            file << machineIndex << "," << task.processingTime << "\n";
+        }
+        machineIndex++;
+    }
+
+    file.close();
+    print("Task allocation saved to", filename);
+}
+
 
 // Function to run the simulations
 void runSimulations(const vector<int>& m_values, const vector<double>& r_values, int numExecutions, WorkStation& workStation, string searchMethod) {
@@ -203,10 +220,15 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
         for (double r : r_values) {
             // For each execution
             print("Executions for m =", m, "and r =", r);
-            print("--------------------------------------");
             for (int exec = 1; exec <= numExecutions; ++exec) {
                 // Initialize the machines
                 workStation.machines = initialize(m, r);
+
+                if (exec == 1) {
+                    print("--------------------------------------");
+                    print("Quantidade de máquinas:", workStation.machines.size(), "| Quantidade de tarefas:", static_cast<int>(pow(m, r)), "| Replicação:", r, "| Execução:", exec);
+                    print("--------------------------------------");
+                }
                 
                 // Start timing
                 auto start = std::chrono::high_resolution_clock::now();
@@ -225,39 +247,42 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                 // Stop timing
                 auto end = std::chrono::high_resolution_clock::now();
                 std::chrono::duration<double> elapsed = end - start;
-
-                // Calculate the makespan
-                int makespan = 0;
-                for (const auto& machine : workStation.machines) {
-                    // Update the makespan
-                    if (machine.totalProcessingTime > makespan) {
-                        makespan = machine.totalProcessingTime;
-                    }
-                }
                 
                 // Write the results to the output file
-                outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << numExecutions << "," << makespan << "," << r << "\n";
+                outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << numExecutions << "," << "teste" << "," << r << "\n";
                 
-                print("Method:", searchMethod, "| Execution:", exec, "| m:", m, "| r:", r, "| Makespan:", makespan, "| Number of tasks:", workStation.machines[0].tasks.size(), "| Time:", elapsed.count(), "s");
+                if (m == 10 && r == 1.5 && exec == 1) {
+                    exportTaskAllocation(workStation, "tasks_" + searchMethod + "_m" + std::to_string(m) + "_r" + std::to_string(r) + "_exec" + std::to_string(exec) + ".csv");
+                }
+
+                print("Method:", searchMethod, "| Execution:", exec, "| m:", m, "| r:", r, "|",workStation.machines[0].makespan, "| Number of tasks:", static_cast<int>(pow(m, r)), "| Time:", elapsed.count(), "s");
             }
-            print("--------------------------------------");
         }
     }
 
     outputFile.close();
 }
 
-void printMachine(const Machine& machine) {
+void printMachine(const Machine& machine, int i = 1) {
     print("====================================");
-    print("Máquina:");
+    print("Máquina", i);
     print("Tarefas:");
     for (const auto& task : machine.tasks) {
         print("Tarefa", task.id, "| Tempo:", task.processingTime);
     }
     print("====================================");
-    print("Total de tarefas:", machine.tasks.size(), "| Makespan:", machine.totalProcessingTime);
+    print("Total de tarefas:", machine.tasks.size(), "| Makespan:", machine.makespan);
 
 }
+
+void printWorkStation(const WorkStation& workStation) {
+    int i = 1;
+    for (const Machine& machine : workStation.machines) {
+        printMachine(machine,i);
+        ++i;
+    }
+}
+
 
 int main() {
     srand(static_cast<unsigned int>(time(0))); // Inicializa aleatoriedade
@@ -271,6 +296,12 @@ int main() {
     print("Starting simulations...");
 
     runSimulations(m_values, r_values, numExecutions, workStation, useBestImprovement ? "searchLocalBestImprovement" : "searchLocalFirstImprovement");
+
+    print("Simulations finished!");
+
+    //print("First machine Debug:");
+
+    //printWorkStation(workStation);
 
     return 0;
 }
