@@ -3,7 +3,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 # Carregar os dados do CSV
-df = pd.read_csv("tasks_searchLocalFirstImprovement_m10_r1.500000_exec1.csv")
+df = pd.read_csv("data/tasks_searchLocalFirstImprovement_m10_r1.500000_exec1.csv")
 
 # Agrupar tarefas por máquina
 grouped = df.groupby("Machine")["TaskProcessingTime"].apply(list)
@@ -67,5 +67,5 @@ plt.grid(axis="y", linestyle="--", alpha=0.6)
 
 # Ajustar layout e salvar
 plt.tight_layout()
-plt.savefig("task_distribution.png", dpi=150)
+plt.savefig("data/task_distribution.png", dpi=150)
 plt.show()

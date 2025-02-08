@@ -55,7 +55,7 @@ Task generateTask(int i) {
 }
 
 // Function to export the task allocation to a CSV file
-void exportTaskAllocation(const WorkStation& workStation, const string& filename = "tasks.csv") {
+void exportTaskAllocation(const WorkStation& workStation, const string& filename = "data/tasks.csv") {
     // Open the file
     std::ofstream file(filename);
     // Write the header
@@ -361,10 +361,10 @@ void searchLocalIterative(WorkStation& workStation, double per, int ILSmax=1000)
 // Function to run the simulations
 void runSimulations(const vector<int>& m_values, const vector<double>& r_values, int numExecutions, WorkStation& workStation, string searchMethod, double per) {
     // Delete the output file if it exists
-    std::remove("resultados.csv");
+    std::remove("data/resultados.csv");
 
     // Open the output file
-    std::ofstream outputFile("resultados.csv");
+    std::ofstream outputFile("data/resultados.csv");
     // Write the header
     outputFile << "Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro\n";
 
@@ -419,7 +419,7 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                 outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << "teste" << "," << parametre << "\n";
                 
                 if (m == 10 && r == 1.5 && exec == 1) {
-                    exportTaskAllocation(workStation, "tasks_" + searchMethod + "_m" + std::to_string(m) + "_r" + std::to_string(r) + "_exec" + std::to_string(exec) + ".csv");
+                    exportTaskAllocation(workStation, "data/tasks_" + searchMethod + "_m" + std::to_string(m) + "_r" + std::to_string(r) + "_exec" + std::to_string(exec) + ".csv");
                 }
 
                 print("Method:", searchMethod, "| Execution:", exec, "| m:", m, "| r:", r, "|",workStation.machines[0].makespan, "| Number of tasks:", static_cast<int>(pow(m, r)), "| Time:", elapsed.count(), "s");
@@ -456,7 +456,7 @@ int main() {
 
     vector<int> m_values = {10, 20, 50};
     vector<double> r_values = {1.5, 2.0};
-    int numExecutions = 1;
+    int numExecutions = 10;
     WorkStation workStation;
     string searchMethod = "searchLocalBestImprovement";
     //string searchMethod = "searchLocalFirstImprovement";

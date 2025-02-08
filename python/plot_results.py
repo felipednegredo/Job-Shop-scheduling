@@ -43,7 +43,7 @@ for i, N in enumerate(unique_N):
     plt.tight_layout()
 
     # Salvar imagem com um nome descritivo
-    plt.savefig(f"grafico_N{N}.png", dpi=150, bbox_inches="tight")
+    plt.savefig(f"data/grafico_N{N}.png", dpi=150, bbox_inches="tight")
     
     # Mostrar o gráfico
     plt.show()
