@@ -163,28 +163,35 @@ void searchLocalFirstImprovement(WorkStation& workStation) {
     }
 }
 
-// Função para calcular o desvio padrão dos makespans das máquinas
+// Function to compute the standard deviation of the makespan
 double computeMakespanStdDev(const std::vector<Machine>& machines) {
+    // Calculate the mean and the sum of the squares of the makespan
     double sum = 0, sumSq = 0;
+    // Get the number of machines
     int n = machines.size();
 
+    // For each machine
     for (const auto& machine : machines) {
+        // Update the sum and the sum of the squares
         sum += machine.makespan;
+        // Update the sum of the squares
         sumSq += machine.makespan * machine.makespan;
     }
 
+    // Calculate the mean
     double mean = sum / n;
-    return std::sqrt((sumSq / n) - (mean * mean));  // Desvio padrão
+    // Return the square root of the difference between the sum of the squares divided by n and the square of the mean
+    return std::sqrt((sumSq / n) - (mean * mean));
 }
 
-// Função de busca local com melhor balanceamento
+// Function to search for the best improvement
 void searchLocalBestImprovement(WorkStation& workStation) {
     bool improvement = true;
 
     while (improvement) {
         improvement = false;
 
-        // Estado inicial: calcular o desvio padrão antes da movimentação
+        // Calculate the current standard deviation
         double currentStdDev = computeMakespanStdDev(workStation.machines);
 
         Task* bestTask = nullptr;
@@ -192,55 +199,70 @@ void searchLocalBestImprovement(WorkStation& workStation) {
         Machine* targetMachine = nullptr;
         double bestStdDevReduction = 0.0;
 
-        // Iterar sobre cada máquina
+        // For each machine
         for (auto& machine : workStation.machines) {
-            if (machine.tasks.empty()) continue;  // Ignorar máquinas vazias
+            // If the machine is empty, skip it
+            if (machine.tasks.empty()) continue;
 
-            // Iterar sobre cada tarefa da máquina
+            // For each task in the machine
             for (size_t i = 0; i < machine.tasks.size(); ++i) {
+                // Get the task
                 Task& task = machine.tasks[i];
 
-                // Testar realocar a tarefa para outra máquina
+                // For each other machine
                 for (auto& otherMachine : workStation.machines) {
-                    if (&machine == &otherMachine) continue;  // Não mover para a mesma máquina
+                    // If the machine is the same as the other machine, skip it
+                    if (&machine == &otherMachine) continue;
 
-                    // Simular a troca
+                    // Simulate the reallocation
                     machine.makespan -= task.processingTime;
                     otherMachine.makespan += task.processingTime;
 
-                    // Calcular novo desvio padrão
+                    // Calculate the new standard deviation
                     double newStdDev = computeMakespanStdDev(workStation.machines);
 
-                    // Se houve melhora significativa, armazenar a melhor escolha
+                    // Calculate the standard deviation reduction
                     double stdDevReduction = currentStdDev - newStdDev;
                     if (stdDevReduction > bestStdDevReduction) {
+                        // Update the best improvement
                         bestStdDevReduction = stdDevReduction;
+                        // Update the best task
                         bestTask = &task;
+                        // Update the source machine
                         sourceMachine = &machine;
+                        // Update the target machine
                         targetMachine = &otherMachine;
                     }
 
-                    // Reverter a simulação
+                    // Undo the reallocation
                     machine.makespan += task.processingTime;
                     otherMachine.makespan -= task.processingTime;
                 }
             }
         }
 
-        // Se encontramos a melhor tarefa para realocar, aplicamos a troca
+        // If there is a best improvement
         if (bestTask && sourceMachine && targetMachine) {
+            // Remove the best task from the source machine
             auto it = std::find_if(sourceMachine->tasks.begin(), sourceMachine->tasks.end(),
                                    [&](const Task& t) { return t.id == bestTask->id; });
 
+            // If the task was found
             if (it != sourceMachine->tasks.end()) {
+                // Remove the task from the source machine
                 sourceMachine->tasks.erase(it);
+                // Update the makespan of the source machine
                 sourceMachine->makespan -= bestTask->processingTime;
             }
 
+            // Add the best task to the target machine
             targetMachine->tasks.push_back(*bestTask);
+            // Update the makespan of the target machine
             targetMachine->makespan += bestTask->processingTime;
 
+            // Update the number of steps
             workStation.steps++;
+            // Set the improvement flag to true
             improvement = true;
         }
     }
