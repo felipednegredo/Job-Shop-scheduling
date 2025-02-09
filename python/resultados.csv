@@ -1,0 +1,7 @@
+Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro
+searchLocalFirstImprovement,31,10,1,0.000206845,88,teste,N/A
+searchLocalFirstImprovement,100,10,1,0.000668105,348,teste,N/A
+searchLocalFirstImprovement,89,20,1,0.000993482,648,teste,N/A
+searchLocalFirstImprovement,400,20,1,0.00919203,1885,teste,N/A
+searchLocalFirstImprovement,353,50,1,0.0171968,3178,teste,N/A
+searchLocalFirstImprovement,2500,50,1,0.364955,11277,teste,N/A

@@ -268,103 +268,84 @@ void searchLocalBestImprovement(WorkStation& workStation) {
     }
 }
 
+void searchLocalIterative(WorkStation& workStation, double per, int ILSmax = 1000) {
+    WorkStation s0 = workStation;  // Initial solution
+    WorkStation s = s0;            // Best solution found so far
+    int iter = 0, melhorIter = 0;  // Iteration counters
 
-void searchLocalIterative(WorkStation& workStation, double per, int ILSmax=1000) {
-    // Initial solution
-    WorkStation s0 = workStation;
-    // Current solution
-    WorkStation s = s0;
-    int iter = 0, melhorIter = 0;
-
-    // Function to evaluate the makespan of a workstation
-    auto f = [](const WorkStation& ws) {
-        // Find the maximum makespan
+    // Function to calculate the maximum makespan among all machines
+    auto calculateMaxMakespan = [](const WorkStation& ws) {
         int maxMakespan = 0;
-        // For each machine
         for (const auto& machine : ws.machines) {
-            // If the makespan of the machine is greater than the maximum makespan
-            if (machine.makespan > maxMakespan) {
-                // Update the maximum makespan
-                maxMakespan = machine.makespan;
-            }
+            maxMakespan = std::max(maxMakespan, machine.makespan);
         }
-        // Return the maximum makespan
         return maxMakespan;
     };
 
-    // Local search function
-    auto BuscaLocal = [](WorkStation& ws) {
+    // Local search function: Applies the best improvement heuristic
+    auto applyLocalSearch = [](WorkStation& ws) {
         searchLocalBestImprovement(ws);
     };
 
-    // Perturbation function
-    auto perturbacao = [per](WorkStation& ws) {
+    // Perturbation function: Moves tasks between machines to escape local optima
+    auto applyPerturbation = [per](WorkStation& ws) {
         int numTasks = 0;
         for (const auto& machine : ws.machines) {
             numTasks += machine.tasks.size();
         }
-        // Calculate the number of perturbations
-        int numPerturbations = static_cast<int>(numTasks * per);
 
-        // For each perturbation
+        int numPerturbations = std::max(1, static_cast<int>(numTasks * per));
+
         for (int i = 0; i < numPerturbations; ++i) {
-            // Select a random machine
             int machineIndex = rand() % ws.machines.size();
-            // If the machine is not empty
             if (!ws.machines[machineIndex].tasks.empty()) {
-                // Select a random task
                 int taskIndex = rand() % ws.machines[machineIndex].tasks.size();
-                // Get the task
                 Task task = ws.machines[machineIndex].tasks[taskIndex];
-                // Remove the task from the machine
-                ws.machines[machineIndex].tasks.erase(ws.machines[machineIndex].tasks.begin() + taskIndex);
-                // Update the makespan of the machine
-                ws.machines[machineIndex].makespan -= task.processingTime;
-                // Select a random machine
-                int newMachineIndex = rand() % ws.machines.size();
-                // Add the task to the new machine
-                ws.machines[newMachineIndex].tasks.push_back(task);
-                // Update the makespan of the new machine
-                ws.machines[newMachineIndex].makespan += task.processingTime;
 
-                // Update the number of steps
+                ws.machines[machineIndex].tasks.erase(ws.machines[machineIndex].tasks.begin() + taskIndex);
+                ws.machines[machineIndex].makespan -= task.processingTime;
+
+                int newMachineIndex;
+                do {
+                    newMachineIndex = rand() % ws.machines.size();
+                } while (newMachineIndex == machineIndex);
+
+                ws.machines[newMachineIndex].tasks.push_back(task);
+                ws.machines[newMachineIndex].makespan += task.processingTime;
                 ws.steps++;
             }
         }
     };
 
-    // Main iterative local search loop
-    while (iter - melhorIter < ILSmax) {
-        iter++;
-        // Copy the current solution
-        WorkStation s_prime = s;
-        // Perturb the solution
-        perturbacao(s_prime);
-        // Local search
-        BuscaLocal(s_prime);
+    int bestMakespan = calculateMaxMakespan(s);
 
-        // If the new solution is better
-        if (f(s_prime) < f(s)) {
-            // Update the current solution
+    while (iter - melhorIter < ILSmax) {
+        iter++;  // Increment iteration count
+
+        WorkStation s_prime = s;
+        applyPerturbation(s_prime);
+
+        int makespanBefore = calculateMaxMakespan(s_prime);
+        applyLocalSearch(s_prime);
+        int makespanAfter = calculateMaxMakespan(s_prime);
+
+        if (makespanAfter < bestMakespan) {
             s = s_prime;
-            // Update the best iteration
-            melhorIter = iter;
+            bestMakespan = makespanAfter;
+            melhorIter = iter;  // Reset iteration counter since an improvement was found
         }
     }
 
-    // Update the original workstation
-    workStation = s;
+    workStation = s;  // Update the original workstation with the best solution found
 }
-
-
 
 // Function to run the simulations
 void runSimulations(const vector<int>& m_values, const vector<double>& r_values, int numExecutions, WorkStation& workStation, string searchMethod, double per) {
     // Delete the output file if it exists
-    std::remove("data/resultados.csv");
+    std::remove("python/resultados.csv");
 
     // Open the output file
-    std::ofstream outputFile("data/resultados.csv");
+    std::ofstream outputFile("python/resultados.csv");
     // Write the header
     outputFile << "Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro\n";
 
@@ -396,8 +377,10 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                     print("Search Local First Improvement");
                     // Search for the first improvement
                     searchLocalFirstImprovement(workStation);
-                } else if (searchMethod == "local iterative") {
-                    print("Local Iterative");
+                } else if (searchMethod == "searchLocalIterative") {
+                    print("Search Local Iterative");
+                    // Search for the iterative improvement
+                    searchLocalIterative(workStation, per);
                 }
 
                 // Stop timing
@@ -418,9 +401,8 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                 // Write the results to the output file
                 outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << "teste" << "," << parametre << "\n";
                 
-                if (m == 10 && r == 1.5 && exec == 1) {
-                    exportTaskAllocation(workStation, "data/tasks_" + searchMethod + "_m" + std::to_string(m) + "_r" + std::to_string(r) + "_exec" + std::to_string(exec) + ".csv");
-                }
+                // Export the task allocation to a CSV file for each execution
+                exportTaskAllocation(workStation, "python/data"+ searchMethod +"/tasks_" + searchMethod + "_M" + std::to_string(m) + "_tasks" + std::to_string(static_cast<int>(pow(m, r))) + "_exec" + std::to_string(exec) + ".csv");
 
                 print("Method:", searchMethod, "| Execution:", exec, "| m:", m, "| r:", r, "|",workStation.machines[0].makespan, "| Number of tasks:", static_cast<int>(pow(m, r)), "| Time:", elapsed.count(), "s");
             }
@@ -430,6 +412,7 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
     outputFile.close();
 }
 
+// Function to run the simulations
 void printMachine(const Machine& machine, int i = 1) {
     print("====================================");
     print("Máquina", i);
@@ -456,14 +439,17 @@ int main() {
 
     vector<int> m_values = {10, 20, 50};
     vector<double> r_values = {1.5, 2.0};
-    int numExecutions = 10;
+    int numExecutions = 1;
     WorkStation workStation;
-    string searchMethod = "searchLocalBestImprovement";
-    //string searchMethod = "searchLocalFirstImprovement";
+    double per = 0;
+    //double per = 0.1;
+    //string searchMethod = "searchLocalIterative";
+    //string searchMethod = "searchLocalBestImprovement";
+    string searchMethod = "searchLocalFirstImprovement";
 
     print("Starting simulations...");
 
-    runSimulations(m_values, r_values, numExecutions, workStation, searchMethod ,0);
+    runSimulations(m_values, r_values, numExecutions, workStation, searchMethod ,per);
 
     print("Simulations finished!");
 
