@@ -32,7 +32,7 @@ struct WorkStation {
     // Vector of machines
     vector<Machine> machines;
     // Number of steps
-    int steps = 0;
+    long long steps = 0;
 };
 
 // Function to print a single value
@@ -47,6 +47,7 @@ void print(T first, Args ... args) {
     std::cout << first << ' ';
     print(args...);
 }
+
 
 // Function to generate a task
 Task generateTask(int i) {
@@ -268,6 +269,7 @@ void searchLocalBestImprovement(WorkStation& workStation) {
     }
 }
 
+
 void searchLocalIterative(WorkStation& workStation, double per, int ILSmax = 1000) {
     WorkStation s0 = workStation;  // Initial solution
     WorkStation s = s0;            // Best solution found so far
@@ -340,7 +342,7 @@ void searchLocalIterative(WorkStation& workStation, double per, int ILSmax = 100
 }
 
 // Function to run the simulations
-void runSimulations(const vector<int>& m_values, const vector<double>& r_values, int numExecutions, WorkStation& workStation, string searchMethod, double per) {
+void runSimulations(const vector<int>& m_values, const vector<double>& r_values, int numExecutions, string searchMethod, double per) {
     // Delete the output file if it exists
     std::remove("python/resultados.csv");
 
@@ -348,6 +350,9 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
     std::ofstream outputFile("python/resultados.csv");
     // Write the header
     outputFile << "Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro\n";
+
+    // Create a WorkStation object
+    WorkStation workStation;
 
     // For each m value
     for (int m : m_values) {
@@ -402,9 +407,9 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                 outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << "teste" << "," << parametre << "\n";
                 
                 // Export the task allocation to a CSV file for each execution
-                exportTaskAllocation(workStation, "python/data"+ searchMethod +"/tasks_" + searchMethod + "_M" + std::to_string(m) + "_tasks" + std::to_string(static_cast<int>(pow(m, r))) + "_exec" + std::to_string(exec) + ".csv");
+                exportTaskAllocation(workStation, "python/data/"+ searchMethod +"/tasks_" + searchMethod + "_M" + std::to_string(m) + "_tasks" + std::to_string(static_cast<int>(pow(m, r))) + "_exec" + std::to_string(exec) + ".csv");
 
-                print("Method:", searchMethod, "| Execution:", exec, "| m:", m, "| r:", r, "|",workStation.machines[0].makespan, "| Number of tasks:", static_cast<int>(pow(m, r)), "| Time:", elapsed.count(), "s");
+                print("Method:", searchMethod, "Machines: ", workStation.machines.size() ,"| Execution:", exec, "| m:", m, "| r:", r, "|",workStation.machines[0].makespan, "| Number of tasks:", static_cast<int>(pow(m, r)), "| Time:", elapsed.count(), "s");
             }
         }
     }
@@ -440,16 +445,15 @@ int main() {
     vector<int> m_values = {10, 20, 50};
     vector<double> r_values = {1.5, 2.0};
     int numExecutions = 1;
-    WorkStation workStation;
     double per = 0;
     //double per = 0.1;
     //string searchMethod = "searchLocalIterative";
-    //string searchMethod = "searchLocalBestImprovement";
-    string searchMethod = "searchLocalFirstImprovement";
+    string searchMethod = "searchLocalBestImprovement";
+    // string searchMethod = "searchLocalFirstImprovement";
 
     print("Starting simulations...");
 
-    runSimulations(m_values, r_values, numExecutions, workStation, searchMethod ,per);
+    runSimulations(m_values, r_values, numExecutions, searchMethod ,per);
 
     print("Simulations finished!");
 
