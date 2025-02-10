@@ -24,7 +24,7 @@ struct Machine {
     // Vector of tasks
     vector<Task> tasks;
     // Total processing time for the machine
-    int makespan = 0;
+    long int makespan = 0;
 };
 
 // Struct for WorkStation
@@ -32,7 +32,7 @@ struct WorkStation {
     // Vector of machines
     vector<Machine> machines;
     // Number of steps
-    long long steps = 0;
+    long long int steps = 0;
 };
 
 // Function to print a single value
@@ -166,33 +166,25 @@ void searchLocalFirstImprovement(WorkStation& workStation) {
 
 // Function to compute the standard deviation of the makespan
 double computeMakespanStdDev(const std::vector<Machine>& machines) {
-    // Calculate the mean and the sum of the squares of the makespan
     double sum = 0, sumSq = 0;
-    // Get the number of machines
     int n = machines.size();
 
-    // For each machine
     for (const auto& machine : machines) {
-        // Update the sum and the sum of the squares
         sum += machine.makespan;
-        // Update the sum of the squares
         sumSq += machine.makespan * machine.makespan;
     }
 
-    // Calculate the mean
     double mean = sum / n;
-    // Return the square root of the difference between the sum of the squares divided by n and the square of the mean
     return std::sqrt((sumSq / n) - (mean * mean));
 }
 
-// Function to search for the best improvement
+// Busca Local Melhor Melhora aprimorada para distribuir melhor as tarefas
 void searchLocalBestImprovement(WorkStation& workStation) {
     bool improvement = true;
 
     while (improvement) {
         improvement = false;
 
-        // Calculate the current standard deviation
         double currentStdDev = computeMakespanStdDev(workStation.machines);
 
         Task* bestTask = nullptr;
@@ -200,70 +192,59 @@ void searchLocalBestImprovement(WorkStation& workStation) {
         Machine* targetMachine = nullptr;
         double bestStdDevReduction = 0.0;
 
-        // For each machine
+        // Encontra a máquina mais carregada e a menos carregada
+        Machine* mostLoadedMachine = &workStation.machines[0];
+        Machine* leastLoadedMachine = &workStation.machines[0];
+
         for (auto& machine : workStation.machines) {
-            // If the machine is empty, skip it
-            if (machine.tasks.empty()) continue;
-
-            // For each task in the machine
-            for (size_t i = 0; i < machine.tasks.size(); ++i) {
-                // Get the task
-                Task& task = machine.tasks[i];
-
-                // For each other machine
-                for (auto& otherMachine : workStation.machines) {
-                    // If the machine is the same as the other machine, skip it
-                    if (&machine == &otherMachine) continue;
-
-                    // Simulate the reallocation
-                    machine.makespan -= task.processingTime;
-                    otherMachine.makespan += task.processingTime;
-
-                    // Calculate the new standard deviation
-                    double newStdDev = computeMakespanStdDev(workStation.machines);
-
-                    // Calculate the standard deviation reduction
-                    double stdDevReduction = currentStdDev - newStdDev;
-                    if (stdDevReduction > bestStdDevReduction) {
-                        // Update the best improvement
-                        bestStdDevReduction = stdDevReduction;
-                        // Update the best task
-                        bestTask = &task;
-                        // Update the source machine
-                        sourceMachine = &machine;
-                        // Update the target machine
-                        targetMachine = &otherMachine;
-                    }
-
-                    // Undo the reallocation
-                    machine.makespan += task.processingTime;
-                    otherMachine.makespan -= task.processingTime;
-                }
+            if (machine.makespan > mostLoadedMachine->makespan) {
+                mostLoadedMachine = &machine;
+            }
+            if (machine.makespan < leastLoadedMachine->makespan) {
+                leastLoadedMachine = &machine;
             }
         }
 
-        // If there is a best improvement
+        // Verifica se há grande diferença na carga entre as máquinas
+        double makespanDifference = mostLoadedMachine->makespan - leastLoadedMachine->makespan;
+
+        if (makespanDifference > 10) { // Se a diferença for significativa, redistribui
+            for (size_t i = 0; i < mostLoadedMachine->tasks.size(); ++i) {
+                Task& task = mostLoadedMachine->tasks[i];
+
+                mostLoadedMachine->makespan -= task.processingTime;
+                leastLoadedMachine->makespan += task.processingTime;
+
+                double newStdDev = computeMakespanStdDev(workStation.machines);
+                double stdDevReduction = currentStdDev - newStdDev;
+
+                if (stdDevReduction > bestStdDevReduction || makespanDifference > 50) {
+                    bestStdDevReduction = stdDevReduction;
+                    bestTask = &task;
+                    sourceMachine = mostLoadedMachine;
+                    targetMachine = leastLoadedMachine;
+                }
+
+                // Desfaz a movimentação para não modificar os dados antes da decisão final
+                mostLoadedMachine->makespan += task.processingTime;
+                leastLoadedMachine->makespan -= task.processingTime;
+            }
+        }
+
+        // Se encontrou uma boa troca, aplica
         if (bestTask && sourceMachine && targetMachine) {
-            // Remove the best task from the source machine
             auto it = std::find_if(sourceMachine->tasks.begin(), sourceMachine->tasks.end(),
                                    [&](const Task& t) { return t.id == bestTask->id; });
 
-            // If the task was found
             if (it != sourceMachine->tasks.end()) {
-                // Remove the task from the source machine
                 sourceMachine->tasks.erase(it);
-                // Update the makespan of the source machine
                 sourceMachine->makespan -= bestTask->processingTime;
             }
 
-            // Add the best task to the target machine
             targetMachine->tasks.push_back(*bestTask);
-            // Update the makespan of the target machine
             targetMachine->makespan += bestTask->processingTime;
 
-            // Update the number of steps
             workStation.steps++;
-            // Set the improvement flag to true
             improvement = true;
         }
     }
@@ -279,7 +260,9 @@ void searchLocalIterative(WorkStation& workStation, double per, int ILSmax = 100
     auto calculateMaxMakespan = [](const WorkStation& ws) {
         int maxMakespan = 0;
         for (const auto& machine : ws.machines) {
-            maxMakespan = std::max(maxMakespan, machine.makespan);
+            if (machine.makespan > maxMakespan) {
+                maxMakespan = machine.makespan;
+            }
         }
         return maxMakespan;
     };
@@ -351,9 +334,6 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
     // Write the header
     outputFile << "Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro\n";
 
-    // Create a WorkStation object
-    WorkStation workStation;
-
     // For each m value
     for (int m : m_values) {
         // For each r value
@@ -362,6 +342,7 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
             print("Executions for m =", m, "and r =", r);
             for (int exec = 1; exec <= numExecutions; ++exec) {
                 // Initialize the machines
+                WorkStation workStation;
                 workStation.machines = initialize(m, r);
 
                 if (exec == 1) {
@@ -403,12 +384,15 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                     parametre = std::to_string(per);
                 }
                 
-                // Write the results to the output file
-                outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << "teste" << "," << parametre << "\n";
-                
-                // Export the task allocation to a CSV file for each execution
-                exportTaskAllocation(workStation, "python/data/"+ searchMethod +"/tasks_" + searchMethod + "_M" + std::to_string(m) + "_tasks" + std::to_string(static_cast<int>(pow(m, r))) + "_exec" + std::to_string(exec) + ".csv");
+                if (exec == 1) {
+                    // Write the results to the output file
+                    outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << "teste" << "," << parametre << "\n";
+                    // Export the task allocation to a CSV file for each execution
+                    exportTaskAllocation(workStation, "python/data/"+ searchMethod +"/tasks_" + searchMethod + "_M" + std::to_string(m) + "_tasks" + std::to_string(static_cast<int>(pow(m, r))) + "_exec" + std::to_string(exec) + ".csv");
 
+                }
+
+              
                 print("Method:", searchMethod, "Machines: ", workStation.machines.size() ,"| Execution:", exec, "| m:", m, "| r:", r, "|",workStation.machines[0].makespan, "| Number of tasks:", static_cast<int>(pow(m, r)), "| Time:", elapsed.count(), "s");
             }
         }
