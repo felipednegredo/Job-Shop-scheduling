@@ -1,0 +1,11 @@
+Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro
+searchLocalBestImprovement,2500,50,1,5.20072,6218,2575,N/A
+searchLocalBestImprovement,2500,50,2,5.0696,6227,2524,N/A
+searchLocalBestImprovement,2500,50,3,5.19606,6143,2526,N/A
+searchLocalBestImprovement,2500,50,4,4.88731,6177,2550,N/A
+searchLocalBestImprovement,2500,50,5,4.9929,6151,2510,N/A
+searchLocalBestImprovement,2500,50,6,5.0407,6216,2548,N/A
+searchLocalBestImprovement,2500,50,7,4.96475,6130,2528,N/A
+searchLocalBestImprovement,2500,50,8,5.44117,6174,2570,N/A
+searchLocalBestImprovement,2500,50,9,5.00017,6200,2573,N/A
+searchLocalBestImprovement,2500,50,10,4.90669,6193,2574,N/A

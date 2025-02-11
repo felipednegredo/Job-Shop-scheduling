@@ -303,10 +303,11 @@ void searchLocalIterative(WorkStation& workStation, double per, int ILSmax = 100
 // Function to run the simulations
 void runSimulations(const vector<int>& m_values, const vector<double>& r_values, int numExecutions, string searchMethod, double per) {
     // Delete the output file if it exists
-    std::remove("python/resultados.csv");
+    std::string outputFilename = "python/resultados_" + searchMethod + ".csv";
+    std::remove(outputFilename.c_str());
 
     // Open the output file
-    std::ofstream outputFile("python/resultados.csv");
+    std::ofstream outputFile(outputFilename);
     // Write the header
     outputFile << "Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro\n";
 
@@ -407,8 +408,8 @@ void printWorkStation(const WorkStation& workStation) {
 int main() {
     srand(static_cast<unsigned int>(time(0))); // Inicializa aleatoriedade
 
-    vector<int> m_values = {20};
-    vector<double> r_values = {1.5};
+    vector<int> m_values = {2500};
+    vector<double> r_values = {2.0};
     int numExecutions = 10;
     //double per = 0;
     double per = 0.1;

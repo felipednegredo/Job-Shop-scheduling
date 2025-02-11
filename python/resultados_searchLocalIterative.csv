@@ -1,0 +1,11 @@
+Heuristica,N,M,Replicação,Tempo,Iterações,Valor,Parametro
+searchLocalIterative,2500,50,1,13.2251,8543,2523,0.100000
+searchLocalIterative,2500,50,2,18.7733,8538,2534,0.100000
+searchLocalIterative,2500,50,3,14.2409,8799,2544,0.100000
+searchLocalIterative,2500,50,4,14.4593,8177,2521,0.100000
+searchLocalIterative,2500,50,5,17.2073,7840,2517,0.100000
+searchLocalIterative,2500,50,6,15.4992,8268,2528,0.100000
+searchLocalIterative,2500,50,7,17.1405,9226,2542,0.100000
+searchLocalIterative,2500,50,8,13.215,8157,2494,0.100000
+searchLocalIterative,2500,50,9,16.6067,8494,2549,0.100000
+searchLocalIterative,2500,50,10,13.9854,9197,2532,0.100000
