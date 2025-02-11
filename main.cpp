@@ -7,7 +7,6 @@
 #include <fstream>
 #include <chrono>
 #include <climits>
-#include <sstream>
 
 using std::vector;
 using std::string;
@@ -98,7 +97,7 @@ vector<Machine> initialize(int m, double r) {
         // Update the total processing time of the first machine
         machines[0].makespan += task.processingTime;
     }
-    for (int i = 1; i < machines.size(); ++i){
+    for (std::vector<Machine>::size_type i = 1; i < machines.size(); ++i){
         machines[i].makespan = 0;
     }
 
@@ -287,7 +286,7 @@ void searchLocalIterative(WorkStation& workStation, double per, int ILSmax = 100
         WorkStation s_prime = s;
         applyPerturbation(s_prime);
 
-        int makespanBefore = calculateMaxMakespan(s_prime);
+        //int makespanBefore = calculateMaxMakespan(s_prime);
         applyLocalSearch(s_prime);
         int makespanAfter = calculateMaxMakespan(s_prime);
 
@@ -360,17 +359,22 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                 else {
                     parametre = std::to_string(per);
                 }
+
+                // Find the maximum makespan among all machines
+                auto maxMakespanIt = std::max_element(workStation.machines.begin(), workStation.machines.end(),
+                                                      [](const Machine& a, const Machine& b) { return a.makespan < b.makespan; });
+                long int maxMakespan = maxMakespanIt->makespan;
+
+                // Write the results to the output file
+                outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << maxMakespan << "," << parametre << "\n";
                 
-                if (numExecutions == 1) {
-                    // Write the results to the output file
-                    outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << "teste" << "," << parametre << "\n";
+                if (exec == 1) {
                     // Export the task allocation to a CSV file for each execution
                     exportTaskAllocation(workStation, "python/data/"+ searchMethod +"/tasks_" + searchMethod + "_M" + std::to_string(m) + "_tasks" + std::to_string(static_cast<int>(pow(m, r))) + "_exec" + std::to_string(exec) + ".csv");
 
                 }
 
-              
-                print("Method:", searchMethod, "Machines: ", workStation.machines.size() ,"| Execution:", exec, "| m:", m, "| r:", r, "|",workStation.machines[0].makespan, "| Number of tasks:", static_cast<int>(pow(m, r)), "| Time:", elapsed.count(), "s");
+                print("Method:", searchMethod, "Machines: ", workStation.machines.size() ,"| Execution:", exec, "| m:", m, "| r:", r, "| Max Makespan:", maxMakespan, "| Number of tasks:", static_cast<int>(pow(m, r)), "| Time:", elapsed.count(), "s");
             }
         }
     }
@@ -403,14 +407,14 @@ void printWorkStation(const WorkStation& workStation) {
 int main() {
     srand(static_cast<unsigned int>(time(0))); // Inicializa aleatoriedade
 
-    vector<int> m_values = {10, 20, 50};
-    vector<double> r_values = {1.5, 2.0};
-    int numExecutions = 1;
-    double per = 0;
-    //double per = 0.1;
-    //string searchMethod = "searchLocalIterative";
-    string searchMethod = "searchLocalBestImprovement";
-    // string searchMethod = "searchLocalFirstImprovement";
+    vector<int> m_values = {20};
+    vector<double> r_values = {1.5};
+    int numExecutions = 10;
+    //double per = 0;
+    double per = 0.1;
+    string searchMethod = "searchLocalIterative";
+    //string searchMethod = "searchLocalBestImprovement";
+    //string searchMethod = "searchLocalFirstImprovement";
 
     print("Starting simulations...");
 

@@ -13,7 +13,8 @@
             "cwd": "${workspaceFolder}",
             "env": {
                 "LSAN_OPTIONS": "detect_leaks=0"
-            }
+            },
+            "preLaunchTask": "build" // Add this line to specify the task to run before launch
         }
     ]
 }
