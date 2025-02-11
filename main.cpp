@@ -384,7 +384,7 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                     parametre = std::to_string(per);
                 }
                 
-                if (exec == 1) {
+                if (numExecutions == 1) {
                     // Write the results to the output file
                     outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << "teste" << "," << parametre << "\n";
                     // Export the task allocation to a CSV file for each execution
@@ -432,8 +432,8 @@ int main() {
     double per = 0;
     //double per = 0.1;
     //string searchMethod = "searchLocalIterative";
-    string searchMethod = "searchLocalBestImprovement";
-    // string searchMethod = "searchLocalFirstImprovement";
+    //string searchMethod = "searchLocalBestImprovement";
+    string searchMethod = "searchLocalFirstImprovement";
 
     print("Starting simulations...");
 
