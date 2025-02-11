@@ -10,6 +10,8 @@
 
 using std::vector;
 using std::string;
+using isize = ptrdiff_t;
+using usize = size_t;
 
 // Struct for Task
 struct Task {
@@ -24,7 +26,7 @@ struct Machine {
     // Vector of tasks
     vector<Task> tasks;
     // Total processing time for the machine
-    long int makespan = 0;
+    isize makespan = 0;
 };
 
 // Struct for WorkStation
@@ -32,7 +34,7 @@ struct WorkStation {
     // Vector of machines
     vector<Machine> machines;
     // Number of steps
-    long long int steps = 0;
+    isize steps = 0;
 };
 
 // Function to print a single value
@@ -84,12 +86,12 @@ void exportTaskAllocation(const WorkStation& workStation, const string& filename
 // Function to initialize the machines
 vector<Machine> initialize(int m, double r) {
     // Calculate n = m^r
-    long int numTasks = static_cast<int>(pow(m, r));
+    isize numTasks = static_cast<isize>(pow(m, r));
     // Create m machines
     vector<Machine> machines(m);
 
     // Generate n tasks and add them to the first machine
-    for (long int i = 0; i < numTasks; ++i) {
+    for (isize i = 0; i < numTasks; ++i) {
         // Generate a task
         Task task = generateTask(i);
         // Add the task to the first machine
@@ -129,7 +131,7 @@ void searchLocalFirstImprovement(WorkStation& workStation) {
                     // If the machine is different from the other machine
                     if (&machine != &otherMachine) {
                         // Calculate the new total processing time
-                        long int newmakespan = otherMachine.makespan + task.processingTime;
+                        isize newmakespan = otherMachine.makespan + task.processingTime;
 
                         // If the new total processing time is less than the total processing time of the machine
                         if (newmakespan < machine.makespan) {
@@ -175,51 +177,52 @@ void searchLocalBestImprovement(WorkStation& workStation) {
         improvement = false;
 
         // Encontra a máquina com o maior makespan
-        auto maxMachineIt = std::max_element(
-            workStation.machines.begin(), workStation.machines.end(),
-            [](const Machine& a, const Machine& b) { return a.makespan < b.makespan; });
-
-        Machine* maxMachine = &(*maxMachineIt);
-        double maxMakespanBefore = maxMachine->makespan;
-
-        Task bestTask;
-        Machine* targetMachine = nullptr;
-        double bestReduction = 0.0;
-
-        // Percorre cada tarefa da máquina com maior makespan
-        for (size_t i = 0; i < maxMachine->tasks.size(); ++i) {
-            Task task = maxMachine->tasks[i];
-
-            // Tenta realocar para outra máquina
-            for (auto& otherMachine : workStation.machines) {
-                if (&otherMachine == maxMachine) continue;
-
-                double newMaxMakespan = std::max(maxMachine->makespan - task.processingTime,
-                                                 otherMachine.makespan + task.processingTime);
-
-                double makespanReduction = maxMakespanBefore - newMaxMakespan;
-
-                if (makespanReduction > bestReduction) {
-                    bestReduction = makespanReduction;
-                    bestTask = task;
-                    targetMachine = &otherMachine;
-                }
+        isize maxMachineIndex = 0;
+        isize maxMachineMakespan = 0;
+        for(usize i = 0; i < workStation.machines.size(); ++i) {
+            Machine machine = workStation.machines[i];
+            if (machine.makespan > maxMachineMakespan) {
+                maxMachineMakespan = machine.makespan;
+                maxMachineIndex = i;
             }
         }
 
-        // Se encontrou uma realocação que melhora o makespan máximo, aplica a mudança
-        if (targetMachine) {
-            auto it = std::find_if(maxMachine->tasks.begin(), maxMachine->tasks.end(),
-                                   [&](const Task& t) { return t.id == bestTask.id; });
+        double maxMakespanBefore = maxMachineMakespan;
+        Machine& maxMachine = workStation.machines[maxMachineIndex];
 
-            if (it != maxMachine->tasks.end()) {
-                maxMachine->tasks.erase(it);
-                maxMachine->makespan -= bestTask.processingTime;
+        Task maxTask{0};
+
+        double bestReduction = 0.0;
+
+        isize maxTaskIndex = 0;
+        for(usize i = 0; i < maxMachine.tasks.size(); ++i) {
+            Task task = maxMachine.tasks[i];
+            if (task.processingTime > maxTask.processingTime) {
+                maxTask = task;
+                maxTaskIndex = i;
             }
+        }
 
-            targetMachine->tasks.push_back(bestTask);
-            targetMachine->makespan += bestTask.processingTime;
 
+        isize bestMachineIndex = -1;
+        for(usize i = 0; i < workStation.machines.size(); ++i) {
+            Machine machine = workStation.machines[i];
+            double newMaxMakespan = std::max(maxMachine.makespan - maxTask.processingTime,
+                                                machine.makespan + maxTask.processingTime);
+            double makespanReduction = maxMakespanBefore - newMaxMakespan;
+
+           if (makespanReduction > bestReduction) {
+                bestReduction = makespanReduction;
+                bestMachineIndex = i;
+           }
+        }
+
+        if(bestMachineIndex != -1 && bestMachineIndex != maxMachineIndex) {
+            Machine& targetMachine = workStation.machines[bestMachineIndex];
+            maxMachine.tasks.erase(maxMachine.tasks.begin() + maxTaskIndex);
+            maxMachine.makespan -= maxTask.processingTime;
+            targetMachine.tasks.push_back(maxTask);
+            targetMachine.makespan += maxTask.processingTime;
             workStation.steps++;
             improvement = true;
         }
@@ -257,7 +260,7 @@ void searchLocalIterative(WorkStation& workStation, double per, int ILSmax = 100
 
         int numPerturbations = std::max(1, static_cast<int>(numTasks * per));
 
-        for (long long int i = 0; i < numPerturbations; ++i) {
+        for (isize i = 0; i < numPerturbations; ++i) {
             int machineIndex = rand() % ws.machines.size();
             if (!ws.machines[machineIndex].tasks.empty()) {
                 int taskIndex = rand() % ws.machines[machineIndex].tasks.size();
@@ -364,7 +367,7 @@ void runSimulations(const vector<int>& m_values, const vector<double>& r_values,
                 // Find the maximum makespan among all machines
                 auto maxMakespanIt = std::max_element(workStation.machines.begin(), workStation.machines.end(),
                                                       [](const Machine& a, const Machine& b) { return a.makespan < b.makespan; });
-                long int maxMakespan = maxMakespanIt->makespan;
+                isize maxMakespan = maxMakespanIt->makespan;
 
                 // Write the results to the output file
                 outputFile << searchMethod << "," << static_cast<int>(pow(m, r)) << "," << m << "," << exec << "," << elapsed.count() << "," << workStation.steps << "," << maxMakespan << "," << parametre << "\n";
@@ -408,13 +411,13 @@ void printWorkStation(const WorkStation& workStation) {
 int main() {
     srand(static_cast<unsigned int>(time(0))); // Inicializa aleatoriedade
 
-    vector<int> m_values = {2500};
+    vector<int> m_values = {50};
     vector<double> r_values = {2.0};
     int numExecutions = 10;
     //double per = 0;
     double per = 0.1;
-    string searchMethod = "searchLocalIterative";
-    //string searchMethod = "searchLocalBestImprovement";
+    //string searchMethod = "searchLocalIterative";
+    string searchMethod = "searchLocalBestImprovement";
     //string searchMethod = "searchLocalFirstImprovement";
 
     print("Starting simulations...");

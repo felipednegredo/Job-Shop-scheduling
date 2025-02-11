@@ -1,8 +1,8 @@
 #!/usr/bin/env sh
 
 cc=clang++
-cflags="-Wall -Wextra -fsanitize=address -O0 -g -fPIC -pipe"
-# cflags="-Wall -Wextra -O2 -flto -fPIC -pipe -static"
+cflags="-Wall -Wextra -O0 -g -fPIC -pipe"
+[ "$1" = "release" ] && cflags="-Wall -Wextra -O2 -flto -fPIC -pipe"
 
 set -xeu
 
