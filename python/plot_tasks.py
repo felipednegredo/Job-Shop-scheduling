@@ -62,7 +62,7 @@ def plot_task_distribution(search_type):
 
         # Adicionar makespan no topo das barras
         for machine, total_time in bottoms.items():
-            ax.text(machine, total_time + 5, f"Makespan: {int(total_time)}", 
+            ax.text(machine, total_time + 5, f"{int(total_time)}", 
                     ha='center', fontsize=11, fontweight='bold', 
                     bbox=dict(facecolor='white', edgecolor='black', boxstyle='round,pad=0.3'))
 
