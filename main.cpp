@@ -109,78 +109,61 @@ vector<Machine> initialize(int m, double r) {
     return machines;
 }
 
-// Function to search for the first improvement
+// Function to perform local search using the First Improvement strategy
 void searchLocalFirstImprovement(WorkStation& workStation) {
-    // Flag to indicate if there was an improvement
-    bool improvement = true;
+    bool improvement = true; // Flag to indicate if an improvement was made
 
-    // While there is an improvement
     while (improvement) {
-        // Set the improvement flag to false
         improvement = false;
 
-        // Encontra a máquina com o maior makespan
+        // Identify the machine with the highest makespan
         isize maxMachineIndex = 0;
         isize maxMachineMakespan = 0;
-
-        Task maxTask{0};
         isize maxTaskIndex = 0;
+        Task maxTask{0};
 
-        for(usize i = 0; i < workStation.machines.size(); ++i) {
-            Machine machine = workStation.machines[i];
-            if (machine.makespan > maxMachineMakespan) {
-                maxMachineMakespan = machine.makespan;
+        for (usize i = 0; i < workStation.machines.size(); ++i) {
+            if (workStation.machines[i].makespan > maxMachineMakespan) {
+                maxMachineMakespan = workStation.machines[i].makespan;
                 maxMachineIndex = i;
-                maxTask = machine.tasks[maxMachineIndex];
-                for (usize j = 0; j < machine.tasks.size(); ++j) {
-                    Task task = machine.tasks[j];
-                    if (task.processingTime > maxTask.processingTime) {
-                        maxTask = task;
-                        maxTaskIndex = j;
-                }
             }
         }
 
-        double maxMakespanBefore = maxMachineMakespan;
         Machine& maxMachine = workStation.machines[maxMachineIndex];
+        double maxMakespanBefore = maxMachineMakespan;
 
-        double bestReduction = 0.0;
+        // Identify the longest task in the machine with the highest makespan
+        for (usize i = 0; i < maxMachine.tasks.size(); ++i) {
+            if (maxMachine.tasks[i].processingTime > maxTask.processingTime) {
+                maxTask = maxMachine.tasks[i];
+                maxTaskIndex = i;
+            }
+        }
 
-        isize bestMachineIndex = -1;
-        for(usize i = 0; i < workStation.machines.size(); ++i) {
-            Machine machine = workStation.machines[i];
+        // Search for the first machine that improves the makespan
+        for (usize i = 0; i < workStation.machines.size(); ++i) {
+            if (i == maxMachineIndex) continue; // Skip the current machine
+
+            Machine& targetMachine = workStation.machines[i];
             double newMaxMakespan = std::max(maxMachine.makespan - maxTask.processingTime,
-                                                machine.makespan + maxTask.processingTime);
-            double makespanReduction = maxMakespanBefore - newMaxMakespan;
+                                             targetMachine.makespan + maxTask.processingTime);
 
-           if (makespanReduction > bestReduction) {
-                bestReduction = makespanReduction;
-                bestMachineIndex = i;
-           }
-        }
+            if (newMaxMakespan < maxMakespanBefore) {
+                // Move the task to the first machine that improves makespan
+                maxMachine.tasks.erase(maxMachine.tasks.begin() + maxTaskIndex);
+                maxMachine.makespan -= maxTask.processingTime;
 
-        if(bestMachineIndex != -1 && bestMachineIndex != maxMachineIndex) {
-            Machine& targetMachine = workStation.machines[bestMachineIndex];
-            maxMachine.tasks.erase(maxMachine.tasks.begin() + maxTaskIndex);
-            maxMachine.makespan -= maxTask.processingTime;
-            targetMachine.tasks.push_back(maxTask);
-            targetMachine.makespan += maxTask.processingTime;
-            workStation.steps++;
-            improvement = true;
-        }
+                targetMachine.tasks.push_back(maxTask);
+                targetMachine.makespan += maxTask.processingTime;
 
-            // Break the loop
-            if (improvement) {
-                    break;
-                }
-            }
-
-
-            if (improvement) {
-                break;
+                workStation.steps++;
+                improvement = true;
+                break; // Stop searching after the first improvement
             }
         }
+    }
 }
+
 
 // Function to compute the standard deviation of the makespan
 void searchLocalBestImprovement(WorkStation& workStation) {
